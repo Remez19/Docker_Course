@@ -1,0 +1,81 @@
+# The version of the docker copmose we want to use.
+# The version we define here has an effect of the
+# features we can use in this docker-compose file.
+version: "3.8"
+# When using services we need to ident the next
+# line (chlidren) by two.
+# Below services we write our containers names
+services:
+  mongodb:
+    # Can also be a custom image.
+    # by default when we use docker compose when a conainer.
+    # is stopped he will be removed.
+    # also by default we start containers in detouch mode.
+    # no need for (--rm, -d).
+    image: "mongo"
+    volumes:
+      # We add volumes as we learned.
+      # At the end of the volume info we can add ":"
+      # To sepcify more options such as "ro" = read only.
+      - data:/data/db
+
+    # alternativly we can use "environment" flie:
+    # env_file:
+    #   - ./env/mongo.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=max
+      - MONGO_INITDB_ROOT_PASSWORD=secret
+
+    # In many cases we dont need to specify the networks
+    # Because when we use docker compose docker will
+    # automatically create a new environment (network) for all
+    #  the containers specified in this compose file and add them
+    # networks:
+    #   - networkName
+  backend:
+    # we can use "build" to tell docker compose to run
+    # this container on image built from docker  file.
+    # We need to specify the path to docker file.
+    build: ./backend/
+    # Another way:
+    # build:
+    #   context: ./backend
+    #   dockerfile: Dockerfile
+    #   args:
+    #     - some-arg=value
+
+    # Allows us to sepcify a published ports
+    ports:
+      # "host:container_internal_port"
+      - "80:80"
+    volumes:
+      - logs:/app/logs
+      - /app/node_modules
+      - "./backend:/app"
+    environment:
+      - MONGODB_USERNAME=max
+      - MONGODB_PASSWORD=secret
+    # depends_on - available only in docker compose
+    # When a conatiner depends on another container runing
+    # In our case backend depends on mongodb
+    # we can tell docker compose to first run all the dependencies
+    # (Containers) and then this one!
+    depends_on:
+      - mongodb
+
+  frontend:
+    build: ./frontend/
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+    # Letting docker know that this service needs an open connection
+    stdin_open: true
+    tty: true
+    depends_on:
+      - backend
+
+# When using a NAMED volumes we need to add the names as such:
+volumes:
+  data:
+  logs:
